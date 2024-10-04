@@ -1,7 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import streamlit as st
-from scipy.special import ellipj
+from scipy.special import ellipe, ellipj, ellipk
 
 st.title("Exercício Prático Sobre Teorias de Onda")
 st.markdown("Elaborado por <span style='color: red;'>Adriel Lucas F. de Oliveira</span>", unsafe_allow_html=True)
@@ -28,40 +28,50 @@ if st.sidebar.button('Calcular'):
     else:
         st.markdown("Ambas as teorias (<span style='color: red;'>Stokes</span> e <span style='color: red;'>Cnoidal</span>) são adequadas para representar a onda.", unsafe_allow_html=True)
 
-    x = np.linspace(0, 100, 1000)
-    t = 20
+    # Ajuste para plotar no tempo
+    t = np.linspace(0, 20, 100)  # Tempo
+    x_fixed = 0  # Posição fixa para o gráfico
 
-    def elevacao_linear(x, t, Hs, lambda_onda):
+    def elevacao_linear(t, Hs, lambda_onda):
         k = 2 * np.pi / lambda_onda
         omega = 2 * np.pi / T
-        return (Hs / 2) * np.cos(k * x - omega * t)
+        return (Hs / 2) * np.cos(k * x_fixed - omega * t)
 
-    def elevacao_stokes(x, t, Hs, lambda_onda, h):
+    def elevacao_stokes(t, Hs, lambda_onda, h):
         k = 2 * np.pi / lambda_onda
         omega = 2 * np.pi / T
-        # zeta_1 = (Hs / 2) * np.cos(k * x - omega * t)
+        zeta_1 = (Hs / 2) * np.cos(k * x_fixed - omega * t)
         zeta_2 = (((np.pi * (Hs ** 2) * np.cosh(k * h)) / (8 * lambda_onda * (np.sinh(k * h) ** 3)))
-                  * (2 + np.cosh(2 * k * h)) * np.cos(2 * (k * x - omega * t)))
-        return zeta_2
+                  * (2 + np.cosh(2 * k * h)) * np.cos(2 * (k * x_fixed - omega * t)))
+        return zeta_1 + zeta_2
 
-    def elevacao_cnoidal(x, t, Hs, lambda_onda, m=0.2):
-        k = 2 * np.pi / lambda_onda
-        omega = 2 * np.pi / T
-        u = k * x - omega * t
-        sn, cn, dn, ph = ellipj(u, m)
-        return Hs * sn
 
-    elev_linear = elevacao_linear(x, t, Hs, lambda_onda)
-    elev_stokes = elevacao_stokes(x, t, Hs, lambda_onda, h)
-    elev_cnoidal = elevacao_cnoidal(x, t, Hs, lambda_onda)
+    import numpy as np
+    from scipy.special import ellipk, ellipe, ellipj
+
+
+    def elevacao_cnoidal(t, Hs, h, x_fixed, m=0.99, n2=0.5, g=9.81):
+        K = ellipk(m)
+        E = ellipe(m)
+
+        L = h * np.sqrt((16 * m * h) / (3 * Hs)) * K
+        c = np.sqrt(g * h) * (1 + ((Hs / (m * h)) * (1 - (m / 2) - (3 * E / (2 * K)))))
+
+        sn, cn, dn, ph = ellipj((2 * K * (x_fixed - c * t)) / L, m)
+
+        return n2 + Hs * cn ** 2
+
+    elev_linear = elevacao_linear(t, Hs, lambda_onda)
+    elev_stokes = elevacao_stokes(t, Hs, lambda_onda, h)
+    elev_cnoidal = elevacao_cnoidal(t, Hs, h, x_fixed)
 
     plt.figure(figsize=(10, 6))
-    plt.plot(x, elev_linear, label='Teoria Linear', linestyle='--', color = 'black')
-    plt.plot(x, elev_stokes, label='Teoria Stokes (2ª ordem)', linestyle='--', color = 'blue')
-    plt.plot(x, elev_cnoidal, label='Teoria Cnoidal', linestyle='-', color = 'red')
+    plt.plot(t, elev_linear, label='Teoria Linear', linestyle='--', color='black')
+    plt.plot(t, elev_stokes, label='Teoria Stokes (2ª ordem)', linestyle='--', color='blue')
+    plt.plot(t, elev_cnoidal, label='Teoria Cnoidal', linestyle='-', color='red')
 
-    plt.title('Comparação das Elevações da Onda pelas Três Teorias')
-    plt.xlabel('Posição (m)')
+    plt.title('Comparação das Elevações da Onda ao Longo do Tempo')
+    plt.xlabel('Tempo (s)')
     plt.ylabel('Elevação da Onda (m)')
     plt.legend()
     plt.grid(True)
